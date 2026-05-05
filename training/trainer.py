@@ -50,7 +50,13 @@ class CurriculumTrainer:
         for ts in trajectories[0]:
             self.agent.feed(ts)
 
-        loss = self.agent.train()
+        # Try to train - handle case where buffer not full yet
+        try:
+            loss = self.agent.train()
+        except (ValueError, IndexError):
+            # Buffer not full yet (RLCard DQN agent issue)
+            loss = None
+
         return loss
 
     def evaluate(self, opponent, num_hands=1000):
