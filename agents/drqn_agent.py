@@ -28,7 +28,7 @@ class DRQNAgent:
                  hidden_size=64, lr=1e-3, gamma=0.99,
                  epsilon_start=1.0, epsilon_min=0.05, epsilon_decay=0.9995,
                  buffer_capacity=5000, batch_size=64, min_replay=256,
-                 target_update_freq=50):
+                 target_update_freq=50, l2_reg=0.0):
         """
         Initialize DRQN agent.
 
@@ -63,7 +63,9 @@ class DRQNAgent:
         self.target_model = copy.deepcopy(self.model).to(device)
         self.target_model.eval()
 
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        # Optimizer with L2 regularization (weight decay)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=l2_reg)
+        self.lr = lr  # Store for learning rate scheduling
 
         self.epsilon = epsilon_start
         self.epsilon_min = epsilon_min
@@ -241,3 +243,10 @@ class DRQNAgent:
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epsilon = checkpoint['epsilon']
         self._train_steps = checkpoint['train_steps']
+
+    def update_learning_rate(self, new_lr):
+        """Update learning rate for Phase 2 fine-tuning."""
+        self.lr = new_lr
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = new_lr
+        print(f"  Learning rate updated: {new_lr}")
