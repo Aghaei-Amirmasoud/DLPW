@@ -1,5 +1,5 @@
 """
-Sequence Replay Buffer for DRQN with proper TD learning
+Sequence Replay Buffer for storing complete episode sequences
 """
 
 import random
@@ -8,42 +8,44 @@ from collections import deque
 
 class SequenceReplayBuffer:
     """
-    Stores episode trajectories as sequences of transitions.
-    Each episode is a list of (obs_history, action, reward, next_obs_history, done).
+    Stores complete hand sequences: (obs_sequence, action, reward).
+    Uses deque(maxlen=N) for O(1) eviction.
 
-    For DRQN, we need to maintain observation history for the LSTM while
-    using proper TD targets with bootstrapping.
+    v1 bug fix: Instead of storing isolated (s, a, r) transitions, we store
+    the full episode sequence per hand. During training we pad sequences to
+    the same length within a batch.
     """
 
     def __init__(self, capacity=5000):
         """
         Args:
-            capacity: Maximum number of episodes to store
+            capacity: Maximum number of sequences to store
         """
         self.buffer = deque(maxlen=capacity)
 
-    def push(self, episode_transitions):
+    def push(self, obs_sequence, action, reward):
         """
-        Add a complete episode (list of transitions) to the buffer.
+        Add a complete episode sequence to the buffer.
 
         Args:
-            episode_transitions: List of (obs_history, action, reward, next_obs_history, done) tuples
+            obs_sequence: List of observations from the episode
+            action: Final action taken
+            reward: Final reward received
         """
-        if len(episode_transitions) > 0:
-            self.buffer.append(episode_transitions)
+        self.buffer.append((list(obs_sequence), action, reward))
 
     def sample(self, batch_size):
         """
-        Sample a random batch of episodes.
+        Sample a random batch of sequences.
 
         Args:
-            batch_size: Number of episodes to sample
+            batch_size: Number of sequences to sample
 
         Returns:
-            List of episodes (each episode is a list of transitions)
+            List of (obs_sequence, action, reward) tuples
         """
-        return random.sample(self.buffer, min(batch_size, len(self.buffer)))
+        return random.sample(self.buffer, batch_size)
 
     def __len__(self):
-        """Return current buffer size (number of episodes)."""
+        """Return current buffer size."""
         return len(self.buffer)
