@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import copy
+import random
 
 from models.drqn import LeducDRQN
 from models.replay_buffer import SequenceReplayBuffer
@@ -73,6 +74,7 @@ class DRQNAgent:
 
         self.replay_buffer = SequenceReplayBuffer(buffer_capacity)
         self.current_hand_sequence = []  # running obs list for the ongoing hand
+        self.current_episode_transitions = []  # (obs_history, action, reward, next_obs_history, done)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -132,10 +134,13 @@ class DRQNAgent:
         legal_actions = list(state['legal_actions'].keys())
         self.current_hand_sequence.append(obs)
 
+        # Select action
         if np.random.rand() < self.epsilon:
-            return np.random.choice(legal_actions)
+            action = np.random.choice(legal_actions)
+        else:
+            action = self._greedy_action(legal_actions)
 
-        return self._greedy_action(legal_actions)
+        return action
 
     def eval_step(self, state):
         """
@@ -157,20 +162,40 @@ class DRQNAgent:
     def feed(self, transition):
         """
         Called by RLCard after each step during training.
-        On done=True: save the full hand sequence to the replay buffer and reset.
+        Stores (obs_history, action, reward, next_obs_history, done).
 
         Args:
             transition: (state, action, reward, next_state, done) tuple
         """
         state, action, reward, next_state, done = transition
 
-        if done and len(self.current_hand_sequence) > 0:
-            self.replay_buffer.push(self.current_hand_sequence, action, reward)
-            self.current_hand_sequence = []  # reset for next hand
+        # Current observation history (up to this point)
+        obs_history = list(self.current_hand_sequence)
+
+        # Next observation history (add next_state obs if not terminal)
+        if not done and next_state is not None:
+            next_obs_history = obs_history + [next_state['obs']]
+        else:
+            next_obs_history = obs_history  # Terminal state
+
+        # Store transition
+        self.current_episode_transitions.append((
+            obs_history,
+            action,
+            reward,
+            next_obs_history,
+            done
+        ))
+
+        # On episode end: save episode to buffer and reset
+        if done:
+            self.replay_buffer.push(self.current_episode_transitions)
+            self.current_hand_sequence = []
+            self.current_episode_transitions = []
 
     def train(self):
         """
-        One gradient step using a batch of full-episode sequences.
+        One gradient step using proper TD learning with bootstrapping.
 
         Returns:
             float or None: Scalar loss for logging, or None if buffer not warm yet
@@ -178,40 +203,80 @@ class DRQNAgent:
         if len(self.replay_buffer) < self.min_replay:
             return None
 
-        batch = self.replay_buffer.sample(self.batch_size)
+        # Sample episodes from buffer
+        episodes = self.replay_buffer.sample(self.batch_size)
 
-        # Pad sequences to the same length within this batch
-        max_len = max(len(seq) for seq, _, _ in batch)
-        feat = batch[0][0][0].shape[0]
+        # Collect all transitions from sampled episodes
+        all_transitions = []
+        for episode in episodes:
+            all_transitions.extend(episode)
 
-        padded = np.zeros((self.batch_size, max_len, feat), dtype=np.float32)
-        actions = np.zeros(self.batch_size, dtype=np.int64)
-        rewards = np.zeros(self.batch_size, dtype=np.float32)
+        # If we don't have enough transitions, return
+        if len(all_transitions) == 0:
+            return None
 
-        for i, (seq, action, reward) in enumerate(batch):
-            seq_arr = np.array(seq, dtype=np.float32)
-            padded[i, :len(seq)] = seq_arr
+        # Randomly sample batch_size transitions
+        if len(all_transitions) > self.batch_size:
+            transitions = random.sample(all_transitions, self.batch_size)
+        else:
+            transitions = all_transitions
+
+        # Find max sequence length for padding
+        max_len = max(len(obs_hist) for obs_hist, _, _, _, _ in transitions)
+        if max_len == 0:
+            return None
+
+        feat = transitions[0][0][0].shape[0] if len(transitions[0][0]) > 0 else 0
+        if feat == 0:
+            return None
+
+        # Prepare batches
+        states = np.zeros((len(transitions), max_len, feat), dtype=np.float32)
+        next_states = np.zeros((len(transitions), max_len, feat), dtype=np.float32)
+        actions = np.zeros(len(transitions), dtype=np.int64)
+        rewards = np.zeros(len(transitions), dtype=np.float32)
+        dones = np.zeros(len(transitions), dtype=np.float32)
+
+        for i, (obs_hist, action, reward, next_obs_hist, done) in enumerate(transitions):
+            # Pad observation histories
+            if len(obs_hist) > 0:
+                obs_arr = np.array(obs_hist, dtype=np.float32)
+                states[i, :len(obs_hist)] = obs_arr
+
+            if len(next_obs_hist) > 0:
+                next_obs_arr = np.array(next_obs_hist, dtype=np.float32)
+                next_states[i, :len(next_obs_hist)] = next_obs_arr
+
             actions[i] = action
             rewards[i] = reward
+            dones[i] = float(done)
 
-        states_t = torch.from_numpy(padded).to(self.device)
+        # Convert to tensors
+        states_t = torch.from_numpy(states).to(self.device)
+        next_states_t = torch.from_numpy(next_states).to(self.device)
         actions_t = torch.from_numpy(actions).long().unsqueeze(1).to(self.device)
         rewards_t = torch.from_numpy(rewards).to(self.device)
+        dones_t = torch.from_numpy(dones).to(self.device)
 
-        # Current Q-values from online network
+        # Compute current Q-values
         self.model.train()
-        current_q, _ = self.model(states_t)  # (B, num_actions)
-        current_q = current_q.gather(1, actions_t).squeeze(1)  # (B,)
+        current_q, _ = self.model(states_t)
+        current_q = current_q.gather(1, actions_t).squeeze(1)
 
-        # Target: terminal transitions -> target = reward only (no next-state bootstrap)
-        target_q = rewards_t
+        # Compute target Q-values using target network
+        with torch.no_grad():
+            next_q, _ = self.target_model(next_states_t)
+            next_q_max = next_q.max(1)[0]
+            # TD target: r + gamma * max_a' Q_target(s', a') * (1 - done)
+            target_q = rewards_t + self.gamma * next_q_max * (1 - dones_t)
 
-        # Huber loss (more robust than MSE to outlier rewards)
+        # Compute loss
         loss = F.smooth_l1_loss(current_q, target_q)
 
+        # Optimize
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)  # gradient clipping
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
         self.optimizer.step()
 
         # Decay epsilon
