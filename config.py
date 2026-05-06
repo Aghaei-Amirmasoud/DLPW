@@ -25,7 +25,7 @@ LSTM_LAYERS = 1
 LEARNING_RATE = 1e-3
 LEARNING_RATE_PHASE2 = 5e-4  # Lower LR for Phase 2 (fine-tuning)
 GAMMA = 0.99  # Discount factor
-L2_REGULARIZATION = 1e-5  # Weight decay to prevent overfitting
+L2_REGULARIZATION = 0.0  # Weight decay to prevent overfitting
 
 # Exploration
 EPSILON_START = 1.0
