@@ -17,6 +17,8 @@ The core innovation is a **recurrent architecture (LSTM)** that maintains memory
 ✅ **Multiple Baselines**: Comparison with DQN, Heuristic, and Random agents  
 ✅ **Bluff Detection**: Quantitative analysis of strategic deception  
 ✅ **Modular Codebase**: Clean separation of agents, training, evaluation, and visualization  
+✅ **Target Network**: Stable Q-learning with frozen target network  
+✅ **Sequence Replay Buffer**: Full episode sequence storage for LSTM training  
 
 ---
 
@@ -129,12 +131,13 @@ Train vs **Random Agent** → Learn basic card strength and poker fundamentals
 **Phase 2 (Episodes 15,000–29,999):**  
 Train vs **Heuristic Agent** → Learn to exploit predictable patterns
 
-### Training Improvements (v2)
+### Key Technical Improvements
 - ✅ **Sequence Replay Buffer**: Stores full episode sequences instead of single transitions
 - ✅ **Target Network**: Frozen Q-network updated every N steps for stable learning
 - ✅ **Fixed Eval Bug**: Hand sequences now reset properly between games
 - ✅ **Fast Tensor Creation**: Optimized with `np.array()` to eliminate warnings
 - ✅ **Gradient Clipping**: Robust training with Huber loss
+- ✅ **Two-Phase Curriculum**: Learn fundamentals vs Random, then exploit patterns vs Heuristic
 
 ---
 
@@ -171,9 +174,11 @@ print(f"Bluff Rate: {stats['bluff_rate']:.1f}%")
 ### 4. Customize Hyperparameters
 Edit `config.py`:
 ```python
-NUM_EPISODES_PHASE1 = 20000  # Increase training
-LEARNING_RATE = 5e-4          # Lower learning rate
-EPSILON_DECAY = 0.999         # Slower exploration decay
+NUM_EPISODES_PHASE1 = 20000     # Increase Phase 1 training
+NUM_EPISODES_PHASE2 = 20000     # Increase Phase 2 training
+LEARNING_RATE = 5e-4            # Lower learning rate
+EPSILON_DECAY = 0.999           # Slower exploration decay
+TARGET_UPDATE_FREQ = 100        # Update target network frequency
 ```
 
 ---
@@ -293,25 +298,20 @@ BATCH_SIZE = 64             # Training batch size
 
 ## Extending the Project
 
-### 1. Self-Play Training
-```python
-# Train DRQN against itself
-trainer = CurriculumTrainer(
-    env=env,
-    agent=agent_drqn,
-    opponent_phase1=agent_drqn_copy,
-    opponent_phase2=agent_drqn_copy
-)
-```
-
-### 2. Multi-Agent Self-Play
-Train multiple DRQN agents concurrently for Nash equilibrium approximation.
-
-### 3. Larger Poker Variants
+### 1. Larger Poker Variants
 Scale to **Texas Hold'em** or **No-Limit Hold'em** using RLCard's other environments.
 
-### 4. Opponent Modeling
+### 2. Opponent Modeling
 Extend DRQN to explicitly model opponent strategies with auxiliary prediction heads.
+
+### 3. Improved Exploration
+- Noisy Networks for parameter space exploration
+- Prioritized Experience Replay for efficient learning
+
+### 4. Advanced Training Methods
+- Self-play training against agent copies
+- Multi-task learning to prevent catastrophic forgetting
+- Population-based training with diverse opponents
 
 ---
 

@@ -46,11 +46,6 @@ NUM_EPISODES_PHASE2 = 15000  # Training vs Heuristic
 EVALUATE_EVERY = 1000
 EVALUATE_NUM = 1000
 
-# Advanced Training Options
-USE_SELF_PLAY = False  # Use self-play in Phase 2 instead of Heuristic
-MULTI_TASK_LEARNING = True  # Train vs both Random and Heuristic simultaneously
-MULTI_TASK_RATIO = 0.5  # Ratio of Random vs Heuristic opponents (0.5 = 50/50 mix)
-
 # Final Evaluation
 NUM_EVAL_HANDS = 3000
 

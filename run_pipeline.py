@@ -99,12 +99,7 @@ def train_drqn(env, agent_drqn, agent_random, agent_heuristic):
     """
     print("=" * 60)
     print("TRAINING DRQN AGENT")
-    if MULTI_TASK_LEARNING:
-        print(f"  Mode: Multi-Task Learning ({MULTI_TASK_RATIO:.0%} Random + {1-MULTI_TASK_RATIO:.0%} Heuristic)")
-    elif USE_SELF_PLAY:
-        print("  Mode: Self-Play (Phase 2)")
-    else:
-        print("  Mode: Two-Phase Curriculum")
+    print("  Mode: Two-Phase Curriculum")
     print(f"  L2 Regularization: {L2_REGULARIZATION}")
     print(f"  Phase 1 LR: {LEARNING_RATE}")
     print(f"  Phase 2 LR: {LEARNING_RATE_PHASE2}")
@@ -114,10 +109,7 @@ def train_drqn(env, agent_drqn, agent_random, agent_heuristic):
         env=env,
         agent=agent_drqn,
         opponent_phase1=agent_random,
-        opponent_phase2=agent_heuristic,
-        use_self_play=USE_SELF_PLAY,
-        multi_task=MULTI_TASK_LEARNING,
-        multi_task_ratio=MULTI_TASK_RATIO
+        opponent_phase2=agent_heuristic
     )
 
     history = trainer.train()
