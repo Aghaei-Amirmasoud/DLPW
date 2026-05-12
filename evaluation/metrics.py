@@ -144,6 +144,11 @@ def compute_advanced_metrics(trajectories):
         current_round = 1
         went_to_showdown = False
 
+        # Track actions counted for this hand to avoid double-counting
+        hand_action_counts = {'raise': 0, 'call': 0, 'fold': 0, 'check': 0}
+        hand_round1_actions = {'raise': 0, 'call': 0, 'fold': 0, 'check': 0}
+        hand_round2_actions = {'raise': 0, 'call': 0, 'fold': 0, 'check': 0}
+
         for state in hand_trajectory:
             if not isinstance(state, dict):
                 continue
@@ -174,21 +179,25 @@ def compute_advanced_metrics(trajectories):
                 action = player0_actions[-1]
                 hand_actions.append(action)
 
-                # Count action types
-                if action == 'raise':
-                    total_raises += 1
-                elif action == 'call':
-                    total_calls += 1
-                elif action == 'fold':
-                    total_folds += 1
-                elif action == 'check':
-                    total_checks += 1
+                # Count each action type once per occurrence in this hand
+                hand_action_counts[action] = hand_action_counts.get(action, 0) + 1
 
-                # Round-specific tracking
+                # Round-specific tracking for this hand
                 if current_round == 1:
-                    round1_actions[action] = round1_actions.get(action, 0) + 1
+                    hand_round1_actions[action] = hand_round1_actions.get(action, 0) + 1
                 else:
-                    round2_actions[action] = round2_actions.get(action, 0) + 1
+                    hand_round2_actions[action] = hand_round2_actions.get(action, 0) + 1
+
+        # Add this hand's action counts to totals
+        total_raises += hand_action_counts['raise']
+        total_calls += hand_action_counts['call']
+        total_folds += min(hand_action_counts['fold'], 1)  # At most 1 fold per hand
+        total_checks += hand_action_counts['check']
+
+        # Add round-specific counts
+        for action in ['raise', 'call', 'fold', 'check']:
+            round1_actions[action] += hand_round1_actions[action]
+            round2_actions[action] += hand_round2_actions[action]
 
         # VPIP: Did player voluntarily put chips in? (call or raise, not check)
         if any(a in ['call', 'raise'] for a in hand_actions):
