@@ -125,7 +125,7 @@ class CurriculumTrainer:
                 # Restore training opponent
                 self.env.set_agents([self.agent, self.opponent_phase1])
 
-    def train_phase2(self, start_episode, num_episodes, eval_every, eval_num, new_lr=None):
+    def train_phase2(self, start_episode, num_episodes, eval_every, eval_num):
         """
         Phase 2: Train against Heuristic agent.
 
@@ -134,17 +134,11 @@ class CurriculumTrainer:
             num_episodes: Number of training episodes
             eval_every: Evaluate every N episodes
             eval_num: Number of evaluation hands
-            new_lr: New learning rate for Phase 2 (optional)
         """
         print()
         print("=" * 60)
         print(f"PHASE 2: Fine-tuning vs Heuristic ({start_episode}-{start_episode + num_episodes})")
         print("=" * 60)
-
-        # Update learning rate if provided
-        if new_lr is not None and hasattr(self.agent, 'update_learning_rate'):
-            self.agent.update_learning_rate(new_lr)
-            print(f"Learning rate updated to {new_lr}")
 
         self.env.set_agents([self.agent, self.opponent_phase2])
 
@@ -176,11 +170,10 @@ class CurriculumTrainer:
         Returns:
             dict: Training history (EV and loss)
         """
-        from config import LEARNING_RATE_PHASE2
 
         self.train_phase1(NUM_EPISODES_PHASE1, EVALUATE_EVERY, EVALUATE_NUM)
         self.train_phase2(NUM_EPISODES_PHASE1, NUM_EPISODES_PHASE2,
-                         EVALUATE_EVERY, EVALUATE_NUM, new_lr=LEARNING_RATE_PHASE2)
+                         EVALUATE_EVERY, EVALUATE_NUM)
 
         print()
         print("--- TRAINING COMPLETE ---")
