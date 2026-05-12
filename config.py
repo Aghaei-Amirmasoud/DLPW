@@ -30,6 +30,9 @@ EPSILON_START = 1.0
 EPSILON_MIN = 0.05
 EPSILON_DECAY = 0.9995
 
+# Phase 2 Epsilon Reset (set to None to disable, or float value like 0.3 to reset)
+EPSILON_RESET_PHASE2 = None  # Options: None (no reset), 0.3 (moderate), 0.5 (high), 1.0 (full reset)
+
 # Experience Replay
 BUFFER_CAPACITY = 5000
 BATCH_SIZE = 64

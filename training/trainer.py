@@ -140,6 +140,15 @@ class CurriculumTrainer:
         print(f"PHASE 2: Fine-tuning vs Heuristic ({start_episode}-{start_episode + num_episodes})")
         print("=" * 60)
 
+        # Reset epsilon if configured (to encourage exploration of Heuristic-specific strategies)
+        if EPSILON_RESET_PHASE2 is not None:
+            if hasattr(self.agent, 'epsilon'):
+                old_epsilon = self.agent.epsilon
+                self.agent.epsilon = EPSILON_RESET_PHASE2
+                print(f"[Phase 2] Epsilon reset: {old_epsilon:.3f} → {EPSILON_RESET_PHASE2:.3f}")
+                print(f"[Phase 2] Rationale: Encourage exploration of new strategies vs Heuristic")
+                print()
+
         self.env.set_agents([self.agent, self.opponent_phase2])
 
         for episode in range(start_episode, start_episode + num_episodes):
