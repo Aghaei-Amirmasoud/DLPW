@@ -10,7 +10,10 @@ from .metrics import (
     print_evaluation_summary,
     print_advanced_analysis,
     compare_agents,
-    statistical_significance
+    statistical_significance,
+    analyze_queen_play,
+    analyze_round_performance,
+    compare_queen_play
 )
 
 __all__ = [
@@ -21,5 +24,8 @@ __all__ = [
     'print_evaluation_summary',
     'print_advanced_analysis',
     'compare_agents',
-    'statistical_significance'
+    'statistical_significance',
+    'analyze_queen_play',
+    'analyze_round_performance',
+    'compare_queen_play'
 ]
