@@ -11,7 +11,14 @@ from rlcard.agents import RandomAgent, DQNAgent
 from config import *
 from agents import DRQNAgent, ConservativeHeuristicAgent
 from training import CurriculumTrainer
-from evaluation import evaluate_agents, compute_action_distribution, print_evaluation_summary
+from evaluation import (
+    evaluate_agents,
+    compute_action_distribution,
+    print_evaluation_summary,
+    print_advanced_analysis,
+    compare_agents,
+    statistical_significance
+)
 from analysis import plot_training_curves, plot_comparison_curves, plot_ev_comparison_bar
 
 
@@ -224,11 +231,33 @@ def evaluate_all(env, agent_drqn, agent_dqn, agent_random, agent_heuristic):
     # Print summary
     print_evaluation_summary(results)
 
+    # Advanced analysis
+    print_advanced_analysis(results)
+
+    # Head-to-head comparison
+    compare_agents(results, 'DRQN', 'DQN')
+
+    # Statistical significance
+    print("\n" + "=" * 60)
+    print("STATISTICAL SIGNIFICANCE")
+    print("=" * 60)
+
+    sig_test = statistical_significance(ev_vs_dqn, NUM_EVAL_HANDS)
+    print(f"\nDRQN vs DQN (head-to-head):")
+    print(f"  Expected Value: {sig_test['ev']:+.3f} chips/hand")
+    print(f"  Standard Error: ±{sig_test['std_error']:.3f}")
+    print(f"  95% CI: [{sig_test['ci_95_lower']:+.3f}, {sig_test['ci_95_upper']:+.3f}]")
+    print(f"  Z-score: {sig_test['z_score']:.2f}")
+    print(f"  P-value: {sig_test['p_value']:.6f}")
+    print(f"  Statistically Significant: {'YES' if sig_test['significant'] else 'NO'}")
+
     # Final verdict
     print("\n" + "=" * 60)
     if ev_vs_dqn > 0:
         print("✓ SUCCESS: DRQN outperforms the memoryless DQN!")
         print(f"  DRQN advantage: {ev_vs_dqn:+.3f} chips/hand")
+        if sig_test['significant']:
+            print(f"  Result is statistically significant (p < 0.05)")
     else:
         print("⚠ NOTE: DQN held its ground — consider more training episodes.")
     print("=" * 60)

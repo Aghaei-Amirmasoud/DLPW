@@ -5,11 +5,21 @@ Evaluation metrics and analysis
 from .metrics import (
     evaluate_agents,
     compute_action_distribution,
-    print_evaluation_summary
+    compute_advanced_metrics,
+    compute_win_rate_by_hand,
+    print_evaluation_summary,
+    print_advanced_analysis,
+    compare_agents,
+    statistical_significance
 )
 
 __all__ = [
     'evaluate_agents',
     'compute_action_distribution',
-    'print_evaluation_summary'
+    'compute_advanced_metrics',
+    'compute_win_rate_by_hand',
+    'print_evaluation_summary',
+    'print_advanced_analysis',
+    'compare_agents',
+    'statistical_significance'
 ]
