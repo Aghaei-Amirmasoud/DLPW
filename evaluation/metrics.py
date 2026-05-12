@@ -17,7 +17,7 @@ def evaluate_agents(env, agent_a, agent_b, num_hands=3000, label=''):
     Returns:
         tuple: (avg_ev, trajectories)
             - avg_ev: Average chips/hand for agent_a
-            - trajectories: List of game trajectories
+            - trajectories: List of (trajectory, payoff) tuples
     """
     env.set_agents([agent_a, agent_b])
     total = 0
@@ -30,7 +30,8 @@ def evaluate_agents(env, agent_a, agent_b, num_hands=3000, label=''):
 
         trajectories, payoffs = env.run(is_training=False)
         total += payoffs[0]
-        trajectories_collected.append(trajectories[0])
+        # Store trajectory WITH payoff so we can track wins/losses by hand
+        trajectories_collected.append((trajectories[0], payoffs[0]))
 
     avg_ev = total / num_hands
 
@@ -45,7 +46,7 @@ def compute_action_distribution(trajectories, action_names):
     Compute action distribution and bluff rate from trajectories.
 
     Args:
-        trajectories: List of game trajectories
+        trajectories: List of (trajectory, payoff) tuples
         action_names: Dictionary mapping action strings to display names
 
     Returns:
@@ -55,7 +56,13 @@ def compute_action_distribution(trajectories, action_names):
     bluff_attempts = 0
     total_jack_steps = 0
 
-    for hand_trajectory in trajectories:
+    for traj_data in trajectories:
+        # Handle both old format (just trajectory) and new format (trajectory, payoff)
+        if isinstance(traj_data, tuple):
+            hand_trajectory, _ = traj_data
+        else:
+            hand_trajectory = traj_data
+
         for state in hand_trajectory:
             if not isinstance(state, dict):
                 continue
@@ -98,7 +105,7 @@ def compute_advanced_metrics(trajectories):
     Compute advanced poker metrics from trajectories.
 
     Args:
-        trajectories: List of game trajectories
+        trajectories: List of (trajectory, payoff) tuples
 
     Returns:
         dict: Advanced statistics including aggression, VPIP, etc.
@@ -126,7 +133,12 @@ def compute_advanced_metrics(trajectories):
     queen_hands = 0
     king_hands = 0
 
-    for hand_trajectory in trajectories:
+    for traj_data in trajectories:
+        # Handle both old format (just trajectory) and new format (trajectory, payoff)
+        if isinstance(traj_data, tuple):
+            hand_trajectory, _ = traj_data
+        else:
+            hand_trajectory = traj_data
         hand_actions = []
         hand_card = None
         current_round = 1
@@ -218,39 +230,54 @@ def compute_win_rate_by_hand(trajectories):
     Compute win rate broken down by starting hand (J, Q, K).
 
     Args:
-        trajectories: List of game trajectories
+        trajectories: List of (trajectory, payoff) tuples
 
     Returns:
         dict: Win rates for each hand type
     """
     hand_results = {
-        'J': {'wins': 0, 'losses': 0, 'ties': 0, 'total': 0},
-        'Q': {'wins': 0, 'losses': 0, 'ties': 0, 'total': 0},
-        'K': {'wins': 0, 'losses': 0, 'ties': 0, 'total': 0}
+        'J': {'wins': 0, 'losses': 0, 'ties': 0, 'total': 0, 'payoff_sum': 0},
+        'Q': {'wins': 0, 'losses': 0, 'ties': 0, 'total': 0, 'payoff_sum': 0},
+        'K': {'wins': 0, 'losses': 0, 'ties': 0, 'total': 0, 'payoff_sum': 0}
     }
 
-    for hand_trajectory in trajectories:
-        hand_card = None
-        payoff = 0
+    for traj_data in trajectories:
+        # Unpack trajectory and payoff
+        if isinstance(traj_data, tuple):
+            hand_trajectory, payoff = traj_data
+        else:
+            # Fallback for old format
+            hand_trajectory = traj_data
+            payoff = 0
 
+        hand_card = None
+
+        # Get hand card from first state with hand info
         for state in hand_trajectory:
             if not isinstance(state, dict):
                 continue
 
             raw_obs = state.get('raw_obs', {})
 
-            # Get hand card
+            # Get hand card (only need to do this once per hand)
             if hand_card is None:
                 raw_hand = raw_obs.get('hand', '')
                 if raw_hand:
-                    hand_card = raw_hand[-1] if isinstance(raw_hand, str) else ''
+                    # Handle both string and list formats
+                    if isinstance(raw_hand, list):
+                        hand_str = raw_hand[0] if raw_hand else ''
+                    else:
+                        hand_str = raw_hand
 
-            # Get payoff (last state)
-            if 'payoff' in state:
-                payoff = state['payoff']
+                    if hand_str:
+                        hand_card = hand_str[-1]  # Get rank (J, Q, or K)
+                        break  # Found it, no need to continue
 
+        # Record results
         if hand_card in hand_results:
             hand_results[hand_card]['total'] += 1
+            hand_results[hand_card]['payoff_sum'] += payoff
+
             if payoff > 0:
                 hand_results[hand_card]['wins'] += 1
             elif payoff < 0:
@@ -258,14 +285,15 @@ def compute_win_rate_by_hand(trajectories):
             else:
                 hand_results[hand_card]['ties'] += 1
 
-    # Calculate win rates
+    # Calculate win rates and average payoffs
     for card in hand_results:
         total = hand_results[card]['total']
         if total > 0:
             hand_results[card]['win_rate'] = 100 * hand_results[card]['wins'] / total
-            hand_results[card]['avg_payoff'] = (
-                (hand_results[card]['wins'] - hand_results[card]['losses']) / total
-            )
+            hand_results[card]['avg_payoff'] = hand_results[card]['payoff_sum'] / total
+        else:
+            hand_results[card]['win_rate'] = 0
+            hand_results[card]['avg_payoff'] = 0
 
     return hand_results
 

@@ -45,7 +45,7 @@ EVALUATE_EVERY = 1000
 EVALUATE_NUM = 1000
 
 # Final Evaluation
-NUM_EVAL_HANDS = 3000
+NUM_EVAL_HANDS = 5000
 
 # ============================================================
 # PATHS
