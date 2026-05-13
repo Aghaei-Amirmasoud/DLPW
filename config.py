@@ -27,7 +27,7 @@ GAMMA = 0.99  # Discount factor
 
 # Exploration
 EPSILON_START = 1.0
-EPSILON_MIN = 0.1
+EPSILON_MIN = 0.0005
 EPSILON_DECAY = 0.9995
 
 # Phase 2 Epsilon Reset (set to None to disable, or float value like 0.3 to reset)
