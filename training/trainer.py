@@ -37,6 +37,25 @@ class CurriculumTrainer:
         self.ev_history_heuristic = []
         self.loss_history = []
 
+    def _get_epsilon(self):
+        """
+        Get current epsilon value for exploration.
+        Handles both DRQN (self.epsilon) and RLCard DQN (epsilons[total_t]).
+
+        Returns:
+            float: Current epsilon value
+        """
+        # DRQN custom agent
+        if hasattr(self.agent, 'epsilon'):
+            return self.agent.epsilon
+
+        # RLCard DQN agent
+        if hasattr(self.agent, 'epsilons') and hasattr(self.agent, 'total_t'):
+            idx = min(self.agent.total_t, len(self.agent.epsilons) - 1)
+            return self.agent.epsilons[idx]
+
+        return 0.0
+
     def train_episode(self, opponent=None):
         """
         Run one training episode.
@@ -117,7 +136,7 @@ class CurriculumTrainer:
                 self.ev_history_random.append((episode, ev_random))
                 self.ev_history_heuristic.append((episode, ev_heuristic))
 
-                epsilon = getattr(self.agent, 'epsilon', 0.0)
+                epsilon = self._get_epsilon()
                 print(f"[P1] Ep {episode:05d} | ε={epsilon:.3f} | "
                       f"EV vs Random: {ev_random:+.3f} | "
                       f"EV vs Heuristic: {ev_heuristic:+.3f}")
@@ -164,7 +183,7 @@ class CurriculumTrainer:
                 self.ev_history_random.append((episode, ev_random))
                 self.ev_history_heuristic.append((episode, ev_heuristic))
 
-                epsilon = getattr(self.agent, 'epsilon', 0.0)
+                epsilon = self._get_epsilon()
                 print(f"[P2] Ep {episode:05d} | ε={epsilon:.3f} | "
                       f"EV vs Random: {ev_random:+.3f} | "
                       f"EV vs Heuristic: {ev_heuristic:+.3f}")
