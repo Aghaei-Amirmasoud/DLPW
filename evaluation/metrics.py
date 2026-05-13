@@ -2,23 +2,7 @@
 Evaluation metrics for poker agents
 """
 
-
 def evaluate_agents(env, agent_a, agent_b, num_hands=3000, label=''):
-    """
-    Run num_hands games and return average EV for agent_a (player 0).
-
-    Args:
-        env: RLCard environment
-        agent_a: First agent (evaluated)
-        agent_b: Second agent (opponent)
-        num_hands: Number of hands to play
-        label: Description label for logging
-
-    Returns:
-        tuple: (avg_ev, trajectories)
-            - avg_ev: Average chips/hand for agent_a
-            - trajectories: List of (trajectory, payoff) tuples
-    """
     env.set_agents([agent_a, agent_b])
     total = 0
     trajectories_collected = []
@@ -42,16 +26,6 @@ def evaluate_agents(env, agent_a, agent_b, num_hands=3000, label=''):
 
 
 def compute_action_distribution(trajectories, action_names):
-    """
-    Compute action distribution and bluff rate from trajectories.
-
-    Args:
-        trajectories: List of (trajectory, payoff) tuples
-        action_names: Dictionary mapping action strings to display names
-
-    Returns:
-        dict: Statistics including action counts and bluff rate
-    """
     action_counts = {name: 0 for name in action_names.values()}
     bluff_attempts = 0
     total_jack_steps = 0
@@ -101,15 +75,6 @@ def compute_action_distribution(trajectories, action_names):
 
 
 def compute_advanced_metrics(trajectories):
-    """
-    Compute advanced poker metrics from trajectories.
-
-    Args:
-        trajectories: List of (trajectory, payoff) tuples
-
-    Returns:
-        dict: Advanced statistics including aggression, VPIP, etc.
-    """
     # Voluntary Put-in-Pot (VPIP): % of hands where player voluntarily put money in
     # Pre-Flop Raise (PFR): % of hands where player raised pre-flop
     # Aggression Factor (AF): (raises + bets) / calls
@@ -235,15 +200,6 @@ def compute_advanced_metrics(trajectories):
 
 
 def compute_win_rate_by_hand(trajectories):
-    """
-    Compute win rate broken down by starting hand (J, Q, K).
-
-    Args:
-        trajectories: List of (trajectory, payoff) tuples
-
-    Returns:
-        dict: Win rates for each hand type
-    """
     hand_results = {
         'J': {'wins': 0, 'losses': 0, 'ties': 0, 'total': 0, 'payoff_sum': 0},
         'Q': {'wins': 0, 'losses': 0, 'ties': 0, 'total': 0, 'payoff_sum': 0},
@@ -308,12 +264,6 @@ def compute_win_rate_by_hand(trajectories):
 
 
 def print_evaluation_summary(results):
-    """
-    Print formatted evaluation summary.
-
-    Args:
-        results: Dictionary of evaluation results
-    """
     print('\n' + '=' * 60)
     print('FINAL EVALUATION SUMMARY')
     print('=' * 60)
@@ -338,12 +288,6 @@ def print_evaluation_summary(results):
 
 
 def print_advanced_analysis(results):
-    """
-    Print advanced analysis including poker-specific metrics.
-
-    Args:
-        results: Dictionary of evaluation results with trajectories
-    """
     print('\n' + '=' * 60)
     print('ADVANCED ANALYSIS')
     print('=' * 60)
@@ -383,14 +327,6 @@ def print_advanced_analysis(results):
 
 
 def compare_agents(results, agent1_name, agent2_name):
-    """
-    Direct comparison between two agents across all matchups.
-
-    Args:
-        results: Dictionary of evaluation results
-        agent1_name: Name of first agent (e.g., 'DRQN')
-        agent2_name: Name of second agent (e.g., 'DQN')
-    """
     print('\n' + '=' * 60)
     print(f'HEAD-TO-HEAD COMPARISON: {agent1_name} vs {agent2_name}')
     print('=' * 60)
@@ -450,17 +386,6 @@ def compare_agents(results, agent1_name, agent2_name):
 
 
 def statistical_significance(ev, num_hands, std_dev=2.0):
-    """
-    Calculate statistical significance of EV result.
-
-    Args:
-        ev: Expected value (chips/hand)
-        num_hands: Number of hands played
-        std_dev: Estimated standard deviation (default 2.0 for poker)
-
-    Returns:
-        dict: Statistical metrics including confidence interval and p-value
-    """
     import math
 
     # Standard error
@@ -492,15 +417,6 @@ def statistical_significance(ev, num_hands, std_dev=2.0):
 
 
 def analyze_queen_play(trajectories):
-    """
-    Detailed analysis of how Queens are played.
-
-    Args:
-        trajectories: List of (trajectory, payoff) tuples
-
-    Returns:
-        dict: Queen-specific metrics
-    """
     queen_stats = {
         'total_hands': 0,
         'round1_raise': 0,
@@ -632,15 +548,6 @@ def analyze_queen_play(trajectories):
 
 
 def analyze_round_performance(trajectories):
-    """
-    Break down EV by round (pre-flop vs post-flop).
-
-    Args:
-        trajectories: List of (trajectory, payoff) tuples
-
-    Returns:
-        dict: Round-specific performance metrics
-    """
     round_stats = {
         'hands_folded_round1': 0,
         'hands_folded_round2': 0,
@@ -730,14 +637,6 @@ def analyze_round_performance(trajectories):
 
 
 def compare_queen_play(results, agent1_name, agent2_name):
-    """
-    Compare how two agents play Queens.
-
-    Args:
-        results: Dictionary of evaluation results
-        agent1_name: Name of first agent
-        agent2_name: Name of second agent
-    """
     print('\n' + '=' * 60)
     print(f'QUEEN PLAY COMPARISON: {agent1_name} vs {agent2_name}')
     print('=' * 60)

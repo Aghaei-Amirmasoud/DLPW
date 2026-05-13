@@ -8,16 +8,6 @@ import numpy as np
 
 def plot_training_curves(ev_history_random, ev_history_heuristic, loss_history,
                         phase1_episodes, save_path=None):
-    """
-    Plot EV and loss curves during training.
-
-    Args:
-        ev_history_random: List of (episode, ev) tuples for random opponent
-        ev_history_heuristic: List of (episode, ev) tuples for heuristic opponent
-        loss_history: List of (episode, loss) tuples
-        phase1_episodes: Number of episodes in phase 1 (for vertical line)
-        save_path: Optional path to save the plot
-    """
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     fig.suptitle('DRQN Two-Phase Curriculum Training',
                  fontsize=14, fontweight='bold')
@@ -70,17 +60,6 @@ def plot_training_curves(ev_history_random, ev_history_heuristic, loss_history,
 def plot_comparison_curves(drqn_hist_random, drqn_hist_heuristic,
                            dqn_hist_random, dqn_hist_heuristic,
                            phase1_episodes, save_path=None):
-    """
-    Plot DRQN vs DQN comparison curves.
-
-    Args:
-        drqn_hist_random: DRQN EV history vs random
-        drqn_hist_heuristic: DRQN EV history vs heuristic
-        dqn_hist_random: DQN EV history vs random
-        dqn_hist_heuristic: DQN EV history vs heuristic
-        phase1_episodes: Number of episodes in phase 1
-        save_path: Optional path to save the plot
-    """
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     fig.suptitle('DRQN vs DQN — Two-Phase Curriculum Training',
                  fontsize=14, fontweight='bold')
@@ -118,13 +97,6 @@ def plot_comparison_curves(drqn_hist_random, drqn_hist_heuristic,
 
 
 def plot_ev_comparison_bar(results, save_path=None):
-    """
-    Plot bar chart comparing EV across different matchups.
-
-    Args:
-        results: Dictionary with matchup labels as keys and EV as values
-        save_path: Optional path to save the plot
-    """
     labels = list(results.keys())
     values = list(results.values())
     colors = ['steelblue' if v >= 0 else 'tomato' for v in values]
@@ -155,13 +127,6 @@ def plot_ev_comparison_bar(results, save_path=None):
 
 
 def plot_action_distribution(action_stats_dict, save_path=None):
-    """
-    Plot action distribution for different matchups.
-
-    Args:
-        action_stats_dict: Dictionary mapping matchup names to action statistics
-        save_path: Optional path to save the plot
-    """
     matchups = list(action_stats_dict.keys())
     num_matchups = len(matchups)
 

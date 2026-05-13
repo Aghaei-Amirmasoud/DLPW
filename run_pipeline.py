@@ -23,12 +23,6 @@ from analysis import plot_training_curves, plot_comparison_curves, plot_ev_compa
 
 
 def setup_environment():
-    """
-    Initialize environment and agents.
-
-    Returns:
-        tuple: (env, agent_drqn, agent_dqn, agent_random, agent_heuristic)
-    """
     print("=" * 60)
     print("SETUP: Initializing Environment and Agents")
     print("=" * 60)
@@ -69,11 +63,10 @@ def setup_environment():
         batch_size=BATCH_SIZE,
         min_replay=MIN_REPLAY_SIZE,
         target_update_freq=TARGET_UPDATE_FREQ,
-        l2_reg=L2_REGULARIZATION,
         max_sequence_length=MAX_SEQUENCE_LENGTH
     )
     seq_info = f" (max seq len: {MAX_SEQUENCE_LENGTH})" if MAX_SEQUENCE_LENGTH else ""
-    print(f"  ✓ DRQN Agent (LSTM-based){seq_info}")
+    print(f"DRQN Agent (LSTM-based){seq_info}")
 
     agent_dqn = DQNAgent(
         num_actions=num_actions,
@@ -81,37 +74,23 @@ def setup_environment():
         mlp_layers=[HIDDEN_SIZE, HIDDEN_SIZE],
         device=DEVICE
     )
-    print(f"  ✓ DQN Agent (feedforward)")
+    print(f"DQN Agent (feedforward)")
 
     agent_random = RandomAgent(num_actions)
-    print(f"  ✓ Random Agent")
+    print(f"Random Agent")
 
     agent_heuristic = ConservativeHeuristicAgent(num_actions)
-    print(f"  ✓ Heuristic Agent (rule-based)")
+    print(f"Heuristic Agent (rule-based)")
 
     print()
     return env, agent_drqn, agent_dqn, agent_random, agent_heuristic
 
 
 def train_drqn(env, agent_drqn, agent_random, agent_heuristic):
-    """
-    Train DRQN agent using two-phase curriculum.
-
-    Args:
-        env: RLCard environment
-        agent_drqn: DRQN agent to train
-        agent_random: Random opponent for Phase 1
-        agent_heuristic: Heuristic opponent for Phase 2
-
-    Returns:
-        dict: Training history
-    """
     print("=" * 60)
     print("TRAINING DRQN AGENT")
     print("  Mode: Two-Phase Curriculum")
-    print(f"  L2 Regularization: {L2_REGULARIZATION}")
     print(f"  Phase 1 LR: {LEARNING_RATE}")
-    print(f"  Phase 2 LR: {LEARNING_RATE_PHASE2}")
     print("=" * 60)
 
     trainer = CurriculumTrainer(
@@ -131,18 +110,6 @@ def train_drqn(env, agent_drqn, agent_random, agent_heuristic):
 
 
 def train_dqn(env, agent_dqn, agent_random, agent_heuristic):
-    """
-    Train DQN agent using two-phase curriculum (for comparison).
-
-    Args:
-        env: RLCard environment
-        agent_dqn: DQN agent to train
-        agent_random: Random opponent for Phase 1
-        agent_heuristic: Heuristic opponent for Phase 2
-
-    Returns:
-        dict: Training history
-    """
     print("\n" + "=" * 60)
     print("TRAINING DQN AGENT (Baseline)")
     print("=" * 60)
@@ -155,27 +122,10 @@ def train_dqn(env, agent_dqn, agent_random, agent_heuristic):
     )
 
     history = trainer.train()
-
-    # Note: DQN agent from RLCard doesn't have a save method like our DRQN
-    # If needed, implement separately
-
     return history
 
 
 def evaluate_all(env, agent_drqn, agent_dqn, agent_random, agent_heuristic):
-    """
-    Final evaluation of all agents.
-
-    Args:
-        env: RLCard environment
-        agent_drqn: Trained DRQN agent
-        agent_dqn: Trained DQN agent
-        agent_random: Random agent
-        agent_heuristic: Heuristic agent
-
-    Returns:
-        dict: Evaluation results
-    """
     print("\n" + "=" * 60)
     print(f"FINAL EVALUATION ({NUM_EVAL_HANDS} hands per matchup)")
     print("=" * 60)
@@ -268,14 +218,6 @@ def evaluate_all(env, agent_drqn, agent_dqn, agent_random, agent_heuristic):
 
 
 def visualize_results(drqn_history, dqn_history, eval_results):
-    """
-    Generate all visualization plots.
-
-    Args:
-        drqn_history: DRQN training history
-        dqn_history: DQN training history
-        eval_results: Evaluation results
-    """
     print("\n" + "=" * 60)
     print("GENERATING VISUALIZATIONS")
     print("=" * 60)
@@ -299,20 +241,7 @@ def visualize_results(drqn_history, dqn_history, eval_results):
         save_path=f'{PLOT_DIR}/drqn_vs_dqn_comparison.png'
     )
 
-    # EV comparison bar chart
-    ev_comparison = {
-        'DRQN\nvs Random': eval_results['DRQN vs Random']['ev'],
-        'DRQN\nvs Heuristic': eval_results['DRQN vs Heuristic']['ev'],
-        'DRQN\nvs DQN': eval_results['DRQN vs DQN']['ev'],
-        'DQN\nvs Random': eval_results['DQN vs Random']['ev'],
-        'DQN\nvs Heuristic': eval_results['DQN vs Heuristic']['ev'],
-    }
-    plot_ev_comparison_bar(
-        results=ev_comparison,
-        save_path=EV_COMPARISON_PLOT
-    )
-
-    print("\n✓ All plots saved to", PLOT_DIR)
+    print("\nAll plots saved to", PLOT_DIR)
 
 
 def main():

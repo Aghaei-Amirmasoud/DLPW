@@ -9,15 +9,6 @@ import torch.nn.functional as F
 
 
 class LeducDRQN(nn.Module):
-    """
-    DRQN architecture with LSTM memory layer.
-
-    Input (batch, seq_len, state_dim) -> FC(state_dim->hidden_size) + ReLU
-    -> LSTM(hidden_size->hidden_size) -> last timestep -> FC(hidden_size->num_actions) Q-values
-
-    The LSTM is the memory layer that allows the network to remember betting
-    history from Round 1 when deciding in Round 2.
-    """
 
     def __init__(self, state_shape, num_actions, hidden_size=64):
         """
@@ -36,17 +27,6 @@ class LeducDRQN(nn.Module):
         self.fc2 = nn.Linear(hidden_size, num_actions)
 
     def forward(self, x, hidden_state=None):
-        """
-        Forward pass through the network.
-
-        Args:
-            x: Input tensor of shape (batch, seq_len, state_shape)
-            hidden_state: Optional LSTM hidden state
-
-        Returns:
-            q_values: Q-values for each action (batch, num_actions)
-            hidden_state: Updated LSTM hidden state
-        """
         # x: (batch, seq_len, state_shape)
         batch, seq_len, feat = x.shape
 

@@ -1,7 +1,3 @@
-"""
-Neural network models and utilities
-"""
-
 from .drqn import LeducDRQN
 from .replay_buffer import SequenceReplayBuffer
 

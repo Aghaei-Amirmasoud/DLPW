@@ -13,42 +13,12 @@ from models.replay_buffer import SequenceReplayBuffer
 
 
 class DRQNAgent:
-    """
-    Deep Recurrent Q-Network Agent for Leduc Hold'em.
-
-    Key features:
-    - Proper sequence training: batch is padded sequences, not fake seq-len-1 tensors
-    - Target network: frozen copy synced every target_update_freq gradient steps
-    - Correct hand reset: feed() clears the sequence on done=True
-    - Huber loss + gradient clipping: more robust than raw MSE
-    - Fast tensors: np.array() before torch.from_numpy() — no slow-list warning
-    """
-
     def __init__(self, state_shape, num_actions, device,
                  hidden_size=64, lr=1e-3, gamma=0.99,
                  epsilon_start=1.0, epsilon_min=0.05, epsilon_decay=0.9995,
                  buffer_capacity=5000, batch_size=64, min_replay=256,
                  target_update_freq=50, l2_reg=0.0, max_sequence_length=None):
-        """
-        Initialize DRQN agent.
 
-        Args:
-            state_shape: Dimension of state observation
-            num_actions: Number of possible actions
-            device: torch device (cpu/cuda)
-            hidden_size: Size of hidden layers
-            lr: Learning rate
-            gamma: Discount factor
-            epsilon_start: Initial exploration rate
-            epsilon_min: Minimum exploration rate
-            epsilon_decay: Exploration decay rate
-            buffer_capacity: Replay buffer capacity
-            batch_size: Training batch size
-            min_replay: Minimum buffer size before training
-            target_update_freq: Steps between target network updates
-            l2_reg: L2 regularization weight decay
-            max_sequence_length: Maximum sequence length (None=unlimited, 1=memoryless, 3-5=short memory)
-        """
         self.use_raw = False
         self.num_actions = num_actions
         self.device = device
@@ -66,45 +36,25 @@ class DRQNAgent:
         self.target_model = copy.deepcopy(self.model).to(device)
         self.target_model.eval()
 
-        # Optimizer with L2 regularization (weight decay)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=l2_reg)
-        self.lr = lr  # Store for learning rate scheduling
+        self.lr = lr
 
         self.epsilon = epsilon_start
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
 
         self.replay_buffer = SequenceReplayBuffer(buffer_capacity)
-        self.current_hand_sequence = []  # running obs list for the ongoing hand
+        self.current_hand_sequence = []
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
     def _seq_to_tensor(self, sequence):
-        """
-        Convert list of numpy obs to (1, seq_len, feat) FloatTensor.
-        Fast path via np.array to avoid slow-list warning.
-
-        Args:
-            sequence: List of numpy observations
-
-        Returns:
-            torch.Tensor of shape (1, seq_len, feat)
-        """
         arr = np.array(sequence, dtype=np.float32)  # avoids slow-list warning
         return torch.from_numpy(arr).unsqueeze(0).to(self.device)  # (1, T, feat)
 
     def _greedy_action(self, legal_actions):
-        """
-        Run the online network on the current hand sequence, mask illegal actions.
-
-        Args:
-            legal_actions: List of legal action indices
-
-        Returns:
-            int: Selected action index
-        """
         seq_t = self._seq_to_tensor(self.current_hand_sequence)
         with torch.no_grad():
             q_values, _ = self.model(seq_t)
@@ -122,15 +72,6 @@ class DRQNAgent:
     # ------------------------------------------------------------------
 
     def step(self, state):
-        """
-        Training mode: epsilon-greedy exploration.
-
-        Args:
-            state: Current game state
-
-        Returns:
-            int: Selected action
-        """
         obs = state['obs']
         legal_actions = list(state['legal_actions'].keys())
         self.current_hand_sequence.append(obs)
@@ -145,16 +86,6 @@ class DRQNAgent:
         return self._greedy_action(legal_actions)
 
     def eval_step(self, state):
-        """
-        Evaluation mode: greedy, no exploration.
-        FIX: current_hand_sequence must be reset before each game.
-
-        Args:
-            state: Current game state
-
-        Returns:
-            (action, info_dict): Selected action and empty info dictionary
-        """
         obs = state['obs']
         legal_actions = list(state['legal_actions'].keys())
         self.current_hand_sequence.append(obs)
@@ -166,13 +97,6 @@ class DRQNAgent:
         return self._greedy_action(legal_actions), {}
 
     def feed(self, transition):
-        """
-        Called by RLCard after each step during training.
-        On done=True: save the full hand sequence to the replay buffer and reset.
-
-        Args:
-            transition: (state, action, reward, next_state, done) tuple
-        """
         state, action, reward, next_state, done = transition
 
         if done and len(self.current_hand_sequence) > 0:
@@ -180,12 +104,6 @@ class DRQNAgent:
             self.current_hand_sequence = []  # reset for next hand
 
     def train(self):
-        """
-        One gradient step using a batch of full-episode sequences.
-
-        Returns:
-            float or None: Scalar loss for logging, or None if buffer not warm yet
-        """
         if len(self.replay_buffer) < self.min_replay:
             return None
 
@@ -237,7 +155,6 @@ class DRQNAgent:
         return loss.item()
 
     def save_model(self, path):
-        """Save model checkpoint."""
         torch.save({
             'model_state_dict': self.model.state_dict(),
             'target_model_state_dict': self.target_model.state_dict(),
@@ -247,17 +164,9 @@ class DRQNAgent:
         }, path)
 
     def load_model(self, path):
-        """Load model checkpoint."""
         checkpoint = torch.load(path, map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epsilon = checkpoint['epsilon']
         self._train_steps = checkpoint['train_steps']
-
-    def update_learning_rate(self, new_lr):
-        """Update learning rate for Phase 2 fine-tuning."""
-        self.lr = new_lr
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = new_lr
-        print(f"  Learning rate updated: {new_lr}")

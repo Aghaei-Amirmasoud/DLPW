@@ -10,20 +10,7 @@ from config import *
 
 
 class CurriculumTrainer:
-    """
-    Two-phase curriculum training:
-    Phase 1: Train vs Random Agent (learn basic card strength)
-    Phase 2: Train vs Heuristic Agent (learn to exploit predictable play)
-    """
-
     def __init__(self, env, agent, opponent_phase1, opponent_phase2):
-        """
-        Args:
-            env: RLCard environment
-            agent: Agent to train (DRQN or DQN)
-            opponent_phase1: Weak opponent for Phase 1 (typically Random)
-            opponent_phase2: Stronger opponent for Phase 2 (typically Heuristic)
-        """
         self.env = env
         self.agent = agent
         self.opponent_phase1 = opponent_phase1
@@ -38,13 +25,6 @@ class CurriculumTrainer:
         self.loss_history = []
 
     def _get_epsilon(self):
-        """
-        Get current epsilon value for exploration.
-        Handles both DRQN (self.epsilon) and RLCard DQN (epsilons[total_t]).
-
-        Returns:
-            float: Current epsilon value
-        """
         # DRQN custom agent
         if hasattr(self.agent, 'epsilon'):
             return self.agent.epsilon
@@ -57,15 +37,6 @@ class CurriculumTrainer:
         return 0.0
 
     def train_episode(self, opponent=None):
-        """
-        Run one training episode.
-
-        Args:
-            opponent: Opponent to train against (if None, uses current opponent)
-
-        Returns:
-            float or None: Loss value if training occurred
-        """
         if opponent is not None:
             self.env.set_agents([self.agent, opponent])
 
@@ -85,16 +56,6 @@ class CurriculumTrainer:
         return loss
 
     def evaluate(self, opponent, num_hands=1000):
-        """
-        Evaluate agent against an opponent.
-
-        Args:
-            opponent: Opponent agent
-            num_hands: Number of hands to play
-
-        Returns:
-            float: Average EV (chips/hand)
-        """
         self.env.set_agents([self.agent, opponent])
         total = 0
 
@@ -109,14 +70,6 @@ class CurriculumTrainer:
         return total / num_hands
 
     def train_phase1(self, num_episodes, eval_every, eval_num):
-        """
-        Phase 1: Train against Random agent.
-
-        Args:
-            num_episodes: Number of training episodes
-            eval_every: Evaluate every N episodes
-            eval_num: Number of evaluation hands
-        """
         print("=" * 60)
         print(f"PHASE 1: Training vs Random Agent (0-{num_episodes})")
         print("=" * 60)
@@ -145,15 +98,6 @@ class CurriculumTrainer:
                 self.env.set_agents([self.agent, self.opponent_phase1])
 
     def train_phase2(self, start_episode, num_episodes, eval_every, eval_num):
-        """
-        Phase 2: Train against Heuristic agent.
-
-        Args:
-            start_episode: Starting episode number (for continuity)
-            num_episodes: Number of training episodes
-            eval_every: Evaluate every N episodes
-            eval_num: Number of evaluation hands
-        """
         print()
         print("=" * 60)
         print(f"PHASE 2: Fine-tuning vs Heuristic ({start_episode}-{start_episode + num_episodes})")
@@ -192,13 +136,6 @@ class CurriculumTrainer:
                 self.env.set_agents([self.agent, self.opponent_phase2])
 
     def train(self):
-        """
-        Run complete two-phase curriculum training.
-
-        Returns:
-            dict: Training history (EV and loss)
-        """
-
         self.train_phase1(NUM_EPISODES_PHASE1, EVALUATE_EVERY, EVALUATE_NUM)
         self.train_phase2(NUM_EPISODES_PHASE1, NUM_EPISODES_PHASE2,
                          EVALUATE_EVERY, EVALUATE_NUM)

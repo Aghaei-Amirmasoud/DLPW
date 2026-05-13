@@ -16,37 +16,15 @@ class ConservativeHeuristicAgent:
     """
 
     def __init__(self, num_actions):
-        """
-        Args:
-            num_actions: Number of possible actions
-        """
         self.use_raw = True
         self.num_actions = num_actions
 
     def step(self, state):
-        """
-        Training mode step (same as eval_step for heuristic).
-
-        Args:
-            state: Current game state
-
-        Returns:
-            action: Selected action
-        """
         # Unpack the tuple: grab the action, throw away the empty dictionary
         action, _ = self.eval_step(state)
         return action
 
     def eval_step(self, state):
-        """
-        Evaluation mode step - select action based on heuristic rules.
-
-        Args:
-            state: Current game state
-
-        Returns:
-            (action, info_dict): Selected action and empty info dictionary
-        """
         raw_obs = state['raw_obs']
         legal_actions = raw_obs['legal_actions']
 

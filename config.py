@@ -5,26 +5,20 @@ All hyperparameters, paths, and training settings
 
 import torch
 
-# ============================================================
-# ENVIRONMENT SETTINGS
-# ============================================================
 SEED = 42
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ENV_NAME = 'leduc-holdem'
 
-# ============================================================
+
 # MODEL ARCHITECTURE
-# ============================================================
 HIDDEN_SIZE = 64
 LSTM_LAYERS = 1
 
-# Sequence Length (Experiment 6: Memory Window Ablation)
-MAX_SEQUENCE_LENGTH = None  # Options: None (unlimited), 1 (memoryless), 3 (short), 5 (medium), 10 (long)
+# Sequence Length
+MAX_SEQUENCE_LENGTH = None
 
-# ============================================================
+
 # TRAINING HYPERPARAMETERS
-# ============================================================
-# Learning
 LEARNING_RATE = 1e-3
 GAMMA = 0.99  # Discount factor
 
@@ -32,9 +26,7 @@ GAMMA = 0.99  # Discount factor
 EPSILON_START = 1.0
 EPSILON_MIN = 0.0005
 EPSILON_DECAY = 0.9995
-
-# Phase 2 Epsilon Reset (set to None to disable, or float value like 0.3 to reset)
-EPSILON_RESET_PHASE2 = None  # Options: None (no reset), 0.3 (moderate), 0.5 (high), 1.0 (full reset)
+EPSILON_RESET_PHASE2 = None
 
 # Experience Replay
 BUFFER_CAPACITY = 5000
@@ -53,9 +45,7 @@ EVALUATE_NUM = 1000
 # Final Evaluation
 NUM_EVAL_HANDS = 5000
 
-# ============================================================
 # PATHS
-# ============================================================
 OUTPUT_DIR = 'outputs'
 MODEL_DIR = f'{OUTPUT_DIR}/models'
 PLOT_DIR = f'{OUTPUT_DIR}/plots'
@@ -70,9 +60,7 @@ TRAINING_CURVES_PLOT = f'{PLOT_DIR}/training_curves.png'
 EV_COMPARISON_PLOT = f'{PLOT_DIR}/ev_comparison.png'
 ACTION_DIST_PLOT = f'{PLOT_DIR}/action_distribution.png'
 
-# ============================================================
 # ACTION MAPPING
-# ============================================================
 ACTION_NAMES = {
     'call': 'Call',
     'raise': 'Raise',
@@ -80,8 +68,6 @@ ACTION_NAMES = {
     'check': 'Check'
 }
 
-# ============================================================
 # LOGGING
-# ============================================================
 VERBOSE = True
 LOG_LOSS = True

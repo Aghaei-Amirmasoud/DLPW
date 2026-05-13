@@ -12,13 +12,13 @@ The core innovation is a **recurrent architecture (LSTM)** that maintains memory
 
 ## Key Features
 
-✅ **DRQN Architecture**: LSTM-based Q-Network for sequential decision making  
-✅ **Two-Phase Curriculum Learning**: Progressive training from random to strategic opponents  
-✅ **Multiple Baselines**: Comparison with DQN, Heuristic, and Random agents  
-✅ **Bluff Detection**: Quantitative analysis of strategic deception  
-✅ **Modular Codebase**: Clean separation of agents, training, evaluation, and visualization  
-✅ **Target Network**: Stable Q-learning with frozen target network  
-✅ **Sequence Replay Buffer**: Full episode sequence storage for LSTM training  
+**DRQN Architecture**: LSTM-based Q-Network for sequential decision making  
+**Two-Phase Curriculum Learning**: Progressive training from random to strategic opponents  
+**Multiple Baselines**: Comparison with DQN, Heuristic, and Random agents  
+**Bluff Detection**: Quantitative analysis of strategic deception  
+**Modular Codebase**: Clean separation of agents, training, evaluation, and visualization  
+**Target Network**: Stable Q-learning with frozen target network  
+**Sequence Replay Buffer**: Full episode sequence storage for LSTM training  
 
 ---
 
@@ -36,13 +36,10 @@ pip install -r requirements.txt
 python run_pipeline.py
 ```
 
-### Run Jupyter Notebook (Local)
+### Run Jupyter Notebook
 ```bash
 jupyter notebook notebooks/DLPW.ipynb
 ```
-
-### Run on Google Colab
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/YOUR_USERNAME/DLPW/blob/master/notebooks/DLPW_colab.ipynb)
 
 ```bash
 # In Colab, just run all cells!
@@ -82,9 +79,7 @@ DLPW/
 │   └── plots/                        # Training curves, evaluation charts
 │
 └── notebooks/
-    ├── DLPW.ipynb                    # Interactive notebook (modular)
-    ├── DLPW_colab.ipynb              # Google Colab version (standalone)
-    └── DLPW_improved_original.ipynb  # Original monolithic notebook
+    ├── DLPW.ipynb                    # Notebook to run in Colab
 ```
 
 ---
@@ -125,19 +120,19 @@ Input (batch, seq_len, 36)
 
 ### Two-Phase Curriculum Training
 
-**Phase 1 (Episodes 0–14,999):**  
+**Phase 1 (Episodes 0–7,999):**  
 Train vs **Random Agent** → Learn basic card strength and poker fundamentals
 
-**Phase 2 (Episodes 15,000–29,999):**  
+**Phase 2 (Episodes 7,999–29,999):**  
 Train vs **Heuristic Agent** → Learn to exploit predictable patterns
 
 ### Key Technical Improvements
-- ✅ **Sequence Replay Buffer**: Stores full episode sequences instead of single transitions
-- ✅ **Target Network**: Frozen Q-network updated every N steps for stable learning
-- ✅ **Fixed Eval Bug**: Hand sequences now reset properly between games
-- ✅ **Fast Tensor Creation**: Optimized with `np.array()` to eliminate warnings
-- ✅ **Gradient Clipping**: Robust training with Huber loss
-- ✅ **Two-Phase Curriculum**: Learn fundamentals vs Random, then exploit patterns vs Heuristic
+- **Sequence Replay Buffer**: Stores full episode sequences instead of single transitions
+- **Target Network**: Frozen Q-network updated every N steps for stable learning
+- **Fixed Eval Bug**: Hand sequences now reset properly between games
+- **Fast Tensor Creation**: Optimized with `np.array()` to eliminate warnings
+- **Gradient Clipping**: Robust training with Huber loss
+- **Two-Phase Curriculum**: Learn fundamentals vs Random, then exploit patterns vs Heuristic
 
 ---
 
@@ -195,38 +190,14 @@ Percentage breakdown of **Fold** / **Call** / **Check** / **Raise** actions.
 Frequency of raising with weak hands (Jack) to force opponent folds.  
 **Interpretation:** Non-zero bluff rate proves the LSTM learned betting context, not just card strength.
 
----
-
-## Results Summary
-
-| Matchup             | Expected Value | Interpretation                     |
-|---------------------|----------------|------------------------------------|
-| DRQN vs Random      | +0.943 chips/hand | Strong baseline performance       |
-| DRQN vs Heuristic   | +0.194 chips/hand | Exploits rule-based patterns      |
-| **DRQN vs DQN**     | **+0.437 chips/hand** | **✅ Memory advantage proven** |
-| DQN vs Random       | +0.722 chips/hand | Decent without memory             |
-| DQN vs Heuristic    | +0.186 chips/hand | Comparable to DRQN                |
-
-### Key Finding
-**DRQN outperforms DQN by +0.437 chips/hand**, demonstrating that recurrent memory provides a significant advantage in imperfect information games.
-
-### Bluffing Behavior
-- **DRQN bluff rate**: 15.8–18.8% (raises with Jack)
-- **Emergent strategy**: Not explicitly programmed, learned from experience
-- **Evidence of memory**: Agent adapts bluffing frequency based on opponent type
-
----
 
 ## Comparative Analysis
 
 The DRQN agent is evaluated against:
 
-1. ✅ **Random Agent**: Baseline for learning (implemented)
-2. ✅ **Rule-Based Heuristic**: Conservative bot betting on card strength (implemented)
-3. ✅ **Standard DQN Agent**: Feed-forward network to demonstrate the need for memory (implemented)
-
-**Conclusion**: DRQN's recurrent architecture enables superior performance in sequential decision-making tasks with hidden information.
-
+1. **Random Agent**: Baseline for learning (implemented)
+2. **Rule-Based Heuristic**: Conservative bot betting on card strength (implemented)
+3. **Standard DQN Agent**: Feed-forward network to demonstrate the need for memory (implemented)
 ---
 
 ## Visualization Outputs
@@ -235,8 +206,6 @@ All plots are automatically saved to `outputs/plots/`:
 
 1. **`drqn_training_curves.png`**: EV and loss curves during two-phase training
 2. **`drqn_vs_dqn_comparison.png`**: Side-by-side performance comparison
-3. **`ev_comparison.png`**: Bar chart of final evaluation results
-
 ---
 
 ## File Descriptions
@@ -294,27 +263,6 @@ BUFFER_CAPACITY = 5000      # Max sequences stored
 BATCH_SIZE = 64             # Training batch size
 ```
 
----
-
-## Extending the Project
-
-### 1. Larger Poker Variants
-Scale to **Texas Hold'em** or **No-Limit Hold'em** using RLCard's other environments.
-
-### 2. Opponent Modeling
-Extend DRQN to explicitly model opponent strategies with auxiliary prediction heads.
-
-### 3. Improved Exploration
-- Noisy Networks for parameter space exploration
-- Prioritized Experience Replay for efficient learning
-
-### 4. Advanced Training Methods
-- Self-play training against agent copies
-- Multi-task learning to prevent catastrophic forgetting
-- Population-based training with diverse opponents
-
----
-
 ## Requirements
 
 - Python 3.8+
@@ -335,8 +283,8 @@ If you use this code in your research, please cite:
 ```bibtex
 @misc{dlpw2024,
   title={Mastering Imperfect Information with Deep Recurrent Q-Networks in Leduc Hold'em},
-  author={[Your Name]},
-  year={2024},
+  author={[Amir Masoud Aghaei]},
+  year={2026},
   note={Course Project: Deep Learning}
 }
 ```
@@ -351,27 +299,11 @@ If you use this code in your research, please cite:
 
 ---
 
-## License
-
-MIT License - see LICENSE file for details.
-
----
-
 ## Contact
 
 For questions or collaboration:
-- **Email:** [Your Email]
-- **GitHub:** [Your GitHub Profile]
+- **Email:** [mailto:amirmasoud.aghaei@studio.unibo.it]
+- **GitHub:** [https://github.com/Aghaei-Amirmasoud]
 
 ---
 
-## Acknowledgments
-
-- **RLCard Framework**: For providing the Leduc Hold'em environment
-- **PyTorch Team**: For the deep learning framework
-- **Course Instructors**: For guidance and feedback
-
----
-
-**Project Status:** ✅ Complete and reproducible  
-**Last Updated:** 2024
