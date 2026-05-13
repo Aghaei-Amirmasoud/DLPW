@@ -28,7 +28,7 @@ class DRQNAgent:
                  hidden_size=64, lr=1e-3, gamma=0.99,
                  epsilon_start=1.0, epsilon_min=0.05, epsilon_decay=0.9995,
                  buffer_capacity=5000, batch_size=64, min_replay=256,
-                 target_update_freq=50, l2_reg=0.0):
+                 target_update_freq=50, l2_reg=0.0, max_sequence_length=None):
         """
         Initialize DRQN agent.
 
@@ -46,6 +46,8 @@ class DRQNAgent:
             batch_size: Training batch size
             min_replay: Minimum buffer size before training
             target_update_freq: Steps between target network updates
+            l2_reg: L2 regularization weight decay
+            max_sequence_length: Maximum sequence length (None=unlimited, 1=memoryless, 3-5=short memory)
         """
         self.use_raw = False
         self.num_actions = num_actions
@@ -54,6 +56,7 @@ class DRQNAgent:
         self.batch_size = batch_size
         self.min_replay = min_replay
         self.target_update_freq = target_update_freq
+        self.max_sequence_length = max_sequence_length
         self._train_steps = 0
 
         # Online network (trained every step)
@@ -132,6 +135,10 @@ class DRQNAgent:
         legal_actions = list(state['legal_actions'].keys())
         self.current_hand_sequence.append(obs)
 
+        # Truncate sequence if max length specified
+        if self.max_sequence_length is not None and len(self.current_hand_sequence) > self.max_sequence_length:
+            self.current_hand_sequence = self.current_hand_sequence[-self.max_sequence_length:]
+
         if np.random.rand() < self.epsilon:
             return np.random.choice(legal_actions)
 
@@ -151,6 +158,10 @@ class DRQNAgent:
         obs = state['obs']
         legal_actions = list(state['legal_actions'].keys())
         self.current_hand_sequence.append(obs)
+
+        # Truncate sequence if max length specified
+        if self.max_sequence_length is not None and len(self.current_hand_sequence) > self.max_sequence_length:
+            self.current_hand_sequence = self.current_hand_sequence[-self.max_sequence_length:]
 
         return self._greedy_action(legal_actions), {}
 

@@ -69,9 +69,11 @@ def setup_environment():
         batch_size=BATCH_SIZE,
         min_replay=MIN_REPLAY_SIZE,
         target_update_freq=TARGET_UPDATE_FREQ,
-        l2_reg=L2_REGULARIZATION  # Add L2 regularization
+        l2_reg=L2_REGULARIZATION,
+        max_sequence_length=MAX_SEQUENCE_LENGTH
     )
-    print(f"  ✓ DRQN Agent (LSTM-based)")
+    seq_info = f" (max seq len: {MAX_SEQUENCE_LENGTH})" if MAX_SEQUENCE_LENGTH else ""
+    print(f"  ✓ DRQN Agent (LSTM-based){seq_info}")
 
     agent_dqn = DQNAgent(
         num_actions=num_actions,

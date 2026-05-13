@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk '{print $9}')",
+      "Bash(grep -v \"^\\\\.$\\\\|^\\\\.\\\\.$\")",
+      "Bash(python -c \"from config import *; from training import CurriculumTrainer; from agents import DRQNAgent, ConservativeHeuristicAgent; print\\('✓ All imports successful'\\)\")",
+      "Bash(python -c \"from config import *; from training import CurriculumTrainer; from agents import DRQNAgent, ConservativeHeuristicAgent; print\\('All imports successful'\\)\")",
+      "Bash(python test_refactoring.py)",
+      "Bash(python -c \"from evaluation import compute_advanced_metrics, compute_win_rate_by_hand, compare_agents, statistical_significance, print_advanced_analysis; print\\('All new functions imported successfully'\\)\")",
+      "Bash(python -c \"from evaluation import analyze_queen_play, analyze_round_performance, compare_queen_play; print\\('✓ All new investigation functions imported successfully'\\)\")",
+      "Bash(python -c \"from evaluation import analyze_queen_play, analyze_round_performance, compare_queen_play; print\\('All new investigation functions imported successfully'\\)\")",
+      "Read(//mnt/c/Users/Amir M/Desktop/AmirMasoud/Courses/**)",
+      "Bash(python -c \"from config import EPSILON_RESET_PHASE2; print\\(f'EPSILON_RESET_PHASE2 = {EPSILON_RESET_PHASE2}'\\)\")",
+      "Bash(python -c \"from training.trainer import CurriculumTrainer; print\\('✓ Trainer imports successfully'\\)\")",
+      "Bash(python -c \"from training.trainer import CurriculumTrainer; print\\('OK: Trainer imports successfully'\\)\")",
+      "Bash(python *)"
+    ]
+  }
+}

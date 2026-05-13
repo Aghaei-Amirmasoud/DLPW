@@ -18,6 +18,9 @@ ENV_NAME = 'leduc-holdem'
 HIDDEN_SIZE = 64
 LSTM_LAYERS = 1
 
+# Sequence Length (Experiment 6: Memory Window Ablation)
+MAX_SEQUENCE_LENGTH = None  # Options: None (unlimited), 1 (memoryless), 3 (short), 5 (medium), 10 (long)
+
 # ============================================================
 # TRAINING HYPERPARAMETERS
 # ============================================================
