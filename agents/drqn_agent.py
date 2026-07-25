@@ -45,6 +45,8 @@ class DRQNAgent:
 
         self.replay_buffer = SequenceReplayBuffer(buffer_capacity)
         self.current_hand_sequence = []
+        self.current_action_sequence = []
+        self.current_reward_sequence = []
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -99,9 +101,26 @@ class DRQNAgent:
     def feed(self, transition):
         state, action, reward, next_state, done = transition
 
-        if done and len(self.current_hand_sequence) > 0:
-            self.replay_buffer.push(self.current_hand_sequence, action, reward)
-            self.current_hand_sequence = []  # reset for next hand
+        self.current_action_sequence.append(action)
+        self.current_reward_sequence.append(reward)
+
+        # Mirror the sliding-window truncation applied to current_hand_sequence
+        # in step()/eval_step(), so obs[t]/action[t]/reward[t] stay aligned.
+        if self.max_sequence_length is not None:
+            self.current_action_sequence = self.current_action_sequence[-self.max_sequence_length:]
+            self.current_reward_sequence = self.current_reward_sequence[-self.max_sequence_length:]
+
+        if done:
+            if len(self.current_hand_sequence) > 0:
+                self.replay_buffer.push(
+                    self.current_hand_sequence,
+                    self.current_action_sequence,
+                    self.current_reward_sequence
+                )
+            # Reset for next hand
+            self.current_hand_sequence = []
+            self.current_action_sequence = []
+            self.current_reward_sequence = []
 
     def train(self):
         if len(self.replay_buffer) < self.min_replay:
@@ -109,34 +128,51 @@ class DRQNAgent:
 
         batch = self.replay_buffer.sample(self.batch_size)
 
-        # Pad sequences to the same length within this batch
-        max_len = max(len(seq) for seq, _, _ in batch)
+        # Pad sequences (episodes) to the same length within this batch
+        lengths = [len(obs_seq) for obs_seq, _, _ in batch]
+        max_len = max(lengths)
         feat = batch[0][0][0].shape[0]
 
-        padded = np.zeros((self.batch_size, max_len, feat), dtype=np.float32)
-        actions = np.zeros(self.batch_size, dtype=np.int64)
-        rewards = np.zeros(self.batch_size, dtype=np.float32)
+        obs_padded = np.zeros((self.batch_size, max_len, feat), dtype=np.float32)
+        actions_padded = np.zeros((self.batch_size, max_len), dtype=np.int64)
+        rewards_padded = np.zeros((self.batch_size, max_len), dtype=np.float32)
+        mask = np.zeros((self.batch_size, max_len), dtype=np.float32)      # 1 at real (non-padded) steps
+        done_mask = np.zeros((self.batch_size, max_len), dtype=np.float32)  # 1 at each hand's final step
 
-        for i, (seq, action, reward) in enumerate(batch):
-            seq_arr = np.array(seq, dtype=np.float32)
-            padded[i, :len(seq)] = seq_arr
-            actions[i] = action
-            rewards[i] = reward
+        for i, (obs_seq, action_seq, reward_seq) in enumerate(batch):
+            T = len(obs_seq)
+            obs_padded[i, :T] = np.array(obs_seq, dtype=np.float32)
+            actions_padded[i, :T] = np.array(action_seq, dtype=np.int64)
+            rewards_padded[i, :T] = np.array(reward_seq, dtype=np.float32)
+            mask[i, :T] = 1.0
+            done_mask[i, T - 1] = 1.0
 
-        states_t = torch.from_numpy(padded).to(self.device)
-        actions_t = torch.from_numpy(actions).long().unsqueeze(1).to(self.device)
-        rewards_t = torch.from_numpy(rewards).to(self.device)
+        obs_t = torch.from_numpy(obs_padded).to(self.device)
+        actions_t = torch.from_numpy(actions_padded).long().to(self.device)
+        rewards_t = torch.from_numpy(rewards_padded).to(self.device)
+        mask_t = torch.from_numpy(mask).to(self.device)
+        done_t = torch.from_numpy(done_mask).to(self.device)
 
-        # Current Q-values from online network
+        # Current Q-values at every timestep from the online network
         self.model.train()
-        current_q, _ = self.model(states_t)  # (B, num_actions)
-        current_q = current_q.gather(1, actions_t).squeeze(1)  # (B,)
+        q_all, _ = self.model(obs_t, return_all=True)  # (B, L, A)
+        current_q = q_all.gather(2, actions_t.unsqueeze(2)).squeeze(2)  # (B, L)
 
-        # Target: terminal transitions -> target = reward only (no next-state bootstrap)
-        target_q = rewards_t
+        # Bootstrapped TD target from the frozen target network:
+        #   target(t) = r(t) + gamma * max_a Q_target(t+1)   (t is not the hand's last step)
+        #             = r(t)                                  (t IS the hand's last step -> no bootstrap)
+        with torch.no_grad():
+            q_target_all, _ = self.target_model(obs_t, return_all=True)  # (B, L, A)
+            max_next_q = q_target_all.max(dim=2).values  # (B, L)
 
-        # Huber loss (more robust than MSE to outlier rewards)
-        loss = F.smooth_l1_loss(current_q, target_q)
+            next_q = torch.zeros_like(max_next_q)
+            next_q[:, :-1] = max_next_q[:, 1:]  # shift left: index t now holds Q(t+1)
+
+            target_q = rewards_t + self.gamma * next_q * (1 - done_t)
+
+        # Huber loss (more robust than MSE to outlier rewards), averaged only over real (non-padded) steps
+        loss_per_step = F.smooth_l1_loss(current_q, target_q, reduction='none')
+        loss = (loss_per_step * mask_t).sum() / mask_t.sum()
 
         self.optimizer.zero_grad()
         loss.backward()

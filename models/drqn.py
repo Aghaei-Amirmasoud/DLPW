@@ -26,7 +26,7 @@ class LeducDRQN(nn.Module):
         )
         self.fc2 = nn.Linear(hidden_size, num_actions)
 
-    def forward(self, x, hidden_state=None):
+    def forward(self, x, hidden_state=None, return_all=False):
         # x: (batch, seq_len, state_shape)
         batch, seq_len, feat = x.shape
 
@@ -38,8 +38,13 @@ class LeducDRQN(nn.Module):
         # LSTM processes the sequence
         lstm_out, hidden_state = self.lstm(x, hidden_state)
 
-        # Only take the final timestep output
-        last_step = lstm_out[:, -1, :]
-        q_values = self.fc2(last_step)
+        if return_all:
+            # Q-values at every timestep -> (batch, seq_len, num_actions)
+            # Used during training so TD targets can bootstrap from t+1
+            q_values = self.fc2(lstm_out)
+        else:
+            # Only take the final timestep output (used for action selection)
+            last_step = lstm_out[:, -1, :]
+            q_values = self.fc2(last_step)
 
         return q_values, hidden_state
